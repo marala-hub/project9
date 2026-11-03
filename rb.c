@@ -37,7 +37,6 @@ static Elm *rotateLeft(Elm *h)
     return x;
 }
 
-/* Баруун тийш эргүүлэх функц нэмэгдэв */
 static Elm *rotateRight(Elm *h)
 {
     Elm *x = h->L;
@@ -84,8 +83,6 @@ static Elm *put(Elm *h, const Student *px)
 
 /*
   `ptree`-ийн зааж байгаа модонд `x` утгыг оруулна.
-  Мод хоосон байсан бол `ptree->root` хаяг өөрчлөгдөж шинээр орсон оройг заана.
-  Хэрэв мод тэнцвэрээ алдсан бол тохирох тэнцвэржүүлэх үйлдлүүдийг хийнэ.
  */
 void rb_put(RBT *ptree, const Student *px)
 {
@@ -97,8 +94,6 @@ void rb_put(RBT *ptree, const Student *px)
 
 /*
   `ptree`-ийн зааж байгаа модноос `x` утгыг хайн олдсон оройн `Elm*` хаягийг буцаана.
-  Олдохгүй бол `NULL` хаягийг буцаана.
-  Мод дандаа ялгаатай элементүүд хадгална гэж үзэж болно.
  */
 Elm *rb_get(const RBT *ptree, const char id[])
 {
@@ -167,7 +162,8 @@ static Elm *delete(Elm *h, const char id[])
 {
     if (h == NULL) return NULL;
 
-    if (strcmp(id, h->x.id) < 0) {
+    int cmp = strcmp(id, h->x.id);
+    if (cmp < 0) {
         if (h->L != NULL) {
             if (!isRed(h->L) && !isRed(h->L->L))
                 h = moveRedLeft(h);
@@ -176,14 +172,14 @@ static Elm *delete(Elm *h, const char id[])
     } else {
         if (isRed(h->L))
             h = rotateRight(h);
-        if (strcmp(id, h->x.id) == 0 && (h->R == NULL)) {
+        if (cmp == 0 && (h->R == NULL)) {
             free(h);
             return NULL;
         }
         if (h->R != NULL) {
             if (!isRed(h->R) && !isRed(h->R->L))
                 h = moveRedRight(h);
-            if (strcmp(id, h->x.id) == 0) {
+            if (cmp == 0) {
                 Elm *x = min(h->R);
                 h->x = x->x;
                 h->R = deleteMin(h->R);
@@ -196,9 +192,7 @@ static Elm *delete(Elm *h, const char id[])
 }
 
 /*
-  Устгах функц: ТМноос `x` утгыг хайж олоод устгана.
-  Олдохгүй бол юу ч хийхгүй.
-  Хэрэв мод тэнцвэрээ алдсан бол тохирох тэнцвэржүүлэх үйлдлүүдийг хийнэ.
+  Устгах функц: ТМноос `id`-аар хайж олоод устгана.
  */
 void rb_del(RBT *ptree, const char id[])
 {
@@ -217,6 +211,7 @@ void print(Elm *p)
 	else
 		printf("None\n");
 }
+
 static void clearTree(Elm *h)
 {
     if (h == NULL) return;
