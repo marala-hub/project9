@@ -1,0 +1,132 @@
+
+name: RBT Autograding
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rb.c'
+      - 'main.c'
+      - 'DS.h'
+      - 'Makefile'
+      - 'sample/**'
+      - 'small/**'
+      - 'big/**'
+      - 'put/**'
+      - '.github/workflows/classroom.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rbt-grading-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    name: Grade RBT Submission
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Compile RBT
+        run: |
+          gcc -Wall -Wextra main.c rb.c -lm -o program
+
+      - name: Run tests and calculate score
+        id: grading
+        shell: bash
+        run: |
+          score=0
+
+          for test in sample small big put; do
+            case "$test" in
+              sample) points=1 ;;
+              small) points=2 ;;
+              big) points=3 ;;
+              put) points=4 ;;
+            esac
+
+            if timeout 5s ./program \
+              < "$test/input.txt" > actual.txt; then
+              if diff -u "$test/output.txt" actual.txt; then
+                echo "PASS: $test"
+                score=$((score + points))
+              else
+                echo "FAIL: $test"
+              fi
+            else
+              echo "FAIL: $test"
+            fi
+          done
+
+          echo "score=$score" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## RBT Autograding Result"
+            echo ""
+            echo "**Score: $score/10**"
+            echo ""
+            echo "| Test | Points |"
+            echo "|---|---:|"
+            echo "| sample | 1 |"
+            echo "| small | 2 |"
+            echo "| big | 3 |"
+            echo "| put | 4 |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate points badge
+        env:
+          SCORE: ${{ steps.grading.outputs.score }}
+        run: |
+          mkdir -p .github/badges
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          score = int(os.environ["SCORE"])
+
+          if score == 10:
+              color = "#2da44e"
+          elif score >= 5:
+              color = "#d29922"
+          else:
+              color = "#cf222e"
+
+          svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="110" height="20">
+          <rect width="110" height="20" rx="3" fill="#555"/>
+          <rect x="55" width="55" height="20" rx="3" fill="{color}"/>
+          <text x="27" y="14" fill="white" font-size="11" text-anchor="middle">Points</text>
+          <text x="82" y="14" fill="white" font-size="11" text-anchor="middle">{score}/10</text>
+          </svg>'''
+
+          Path(".github/badges/points.svg").write_text(svg)
+          PY
+
+      - name: Commit points badge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .github/badges/points.svg
+
+          if git diff --cached --quiet; then
+            echo "Badge unchanged"
+            exit 0
+          fi
+
+          git commit -m "Update RBT points badge [skip ci]"
+
+          git -c \
+            http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            push origin HEAD:main
