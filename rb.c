@@ -10,7 +10,7 @@ static Elm *put(Elm *h, const Student *px);
 static Elm  *min(Elm *x);
 static Elm *deleteMin(Elm *h);
 static Elm *delete(Elm *h, const char id[]);
-staic void clearTree(Elm *h);
+static void clearTree(Elm *h);
 
 /*
   Хоёр оюутны мэдээллийн хооронд нь харьцуулах функц
@@ -22,13 +22,13 @@ int less(const Student *a, const Student *b)
 static int isRed(Elm *node)
 {
 if (node ==NULL) return 0;
-return node->node->color==RED;
+return node->color==RED;
 }
-static Elm *ritateLeft(Elm *h)
+static Elm *rotateLeft(Elm *h)
 {
 Elm *x=h->R;
 h->R=x->L;
-x->l=h;
+x->L=h;
 x->color=h->color;
 h->color=RED;
 return x;
