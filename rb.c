@@ -1,13 +1,14 @@
 #include "DS.h"
+
 #define RED 1
 #define BLACK 0
 
 static int isRed(Elm *node);
-static Elm *rotateleft(Elm *h);
+static Elm *rotateLeft(Elm *h);
 static Elm *rotateRight(Elm *h);
 static void flipColors(Elm *h);
 static Elm *put(Elm *h, const Student *px);
-static Elm  *min(Elm *x);
+static Elm *min(Elm *x);
 static Elm *deleteMin(Elm *h);
 static Elm *delete(Elm *h, const char id[]);
 static void clearTree(Elm *h);
@@ -17,22 +18,36 @@ static void clearTree(Elm *h);
 */
 int less(const Student *a, const Student *b)
 {
-	return strcmp(a->id, b->id)<0;
+	return strcmp(a->id, b->id) < 0;
 }
+
 static int isRed(Elm *node)
 {
-if (node ==NULL) return 0;
-return node->color==RED;
+    if (node == NULL) return 0;
+    return node->color == RED;
 }
+
 static Elm *rotateLeft(Elm *h)
 {
-Elm *x=h->R;
-h->R=x->L;
-x->L=h;
-x->color=h->color;
-h->color=RED;
-return x;
+    Elm *x = h->R;
+    h->R = x->L;
+    x->L = h;
+    x->color = h->color;
+    h->color = RED;
+    return x;
 }
+
+/* Баруун тийш эргүүлэх функц нэмэгдэв */
+static Elm *rotateRight(Elm *h)
+{
+    Elm *x = h->L;
+    h->L = x->R;
+    x->R = h;
+    x->color = h->color;
+    h->color = RED;
+    return x;
+}
+
 static void flipColors(Elm *h)
 {
     h->color = RED;
@@ -67,7 +82,6 @@ static Elm *put(Elm *h, const Student *px)
     return h;
 }
 
-
 /*
   `ptree`-ийн зааж байгаа модонд `x` утгыг оруулна.
   Мод хоосон байсан бол `ptree->root` хаяг өөрчлөгдөж шинээр орсон оройг заана.
@@ -75,9 +89,9 @@ static Elm *put(Elm *h, const Student *px)
  */
 void rb_put(RBT *ptree, const Student *px)
 {
-        ptree->root=put(ptree->root, px);
-	if(ptree->root !=NULL){
-		ptree->root->color=BLACK;
+    ptree->root = put(ptree->root, px);
+	if (ptree->root != NULL) {
+		ptree->root->color = BLACK;
 	}
 }
 
@@ -88,7 +102,7 @@ void rb_put(RBT *ptree, const Student *px)
  */
 Elm *rb_get(const RBT *ptree, const char id[])
 {
-        Elm *curr = ptree->root;
+    Elm *curr = ptree->root;
     while (curr != NULL) {
         int cmp = strcmp(id, curr->x.id);
         if (cmp < 0) {
@@ -188,7 +202,7 @@ static Elm *delete(Elm *h, const char id[])
  */
 void rb_del(RBT *ptree, const char id[])
 {
-        if (rb_get(ptree, id) != NULL) {
+    if (rb_get(ptree, id) != NULL) {
         ptree->root = delete(ptree->root, id);
         if (ptree->root != NULL) {
             ptree->root->color = BLACK;
