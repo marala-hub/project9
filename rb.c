@@ -217,3 +217,10 @@ void print(Elm *p)
 	else
 		printf("None\n");
 }
+static void clearTree(Elm *h)
+{
+    if (h == NULL) return;
+    clearTree(h->L);
+    clearTree(h->R);
+    free(h);
+}
