@@ -8,17 +8,19 @@ static Elm *rotateLeft(Elm *h);
 static Elm *rotateRight(Elm *h);
 static void flipColors(Elm *h);
 static Elm *put(Elm *h, const Student *px);
+static Elm *moveRedLeft(Elm *h);
+static Elm *moveRedRight(Elm *h);
+static Elm *balance(Elm *h);
 static Elm *min(Elm *x);
 static Elm *deleteMin(Elm *h);
 static Elm *delete(Elm *h, const char id[]);
-static void clearTree(Elm *h);
 
 /*
-  Хоёр оюутны мэдээллийн хооронд нь харьцуулах функц
+  Хоёр оюутны мэдээллийг id-аар харьцуулах функц
 */
 int less(const Student *a, const Student *b)
 {
-	return strcmp(a->id, b->id) < 0;
+    return strcmp(a->id, b->id) < 0;
 }
 
 static int isRed(Elm *node)
@@ -47,11 +49,14 @@ static Elm *rotateRight(Elm *h)
     return x;
 }
 
+/* Эцэг болон хүүхдүүдийн өнгийг эсрэгээр нь хөрвүүлнэ.
+   Оруулахад: хар эцэг + 2 улаан хүүхэд -> улаан эцэг + 2 хар хүүхэд
+   Устгахад:  улаан эцэг + 2 хар хүүхэд -> хар эцэг + 2 улаан хүүхэд */
 static void flipColors(Elm *h)
 {
-    h->color = RED;
-    if (h->L) h->L->color = BLACK;
-    if (h->R) h->R->color = BLACK;
+    h->color ^= 1;
+    if (h->L) h->L->color ^= 1;
+    if (h->R) h->R->color ^= 1;
 }
 
 static Elm *put(Elm *h, const Student *px)
@@ -71,7 +76,7 @@ static Elm *put(Elm *h, const Student *px)
     } else if (cmp > 0) {
         h->R = put(h->R, px);
     } else {
-        h->x = *px; // Ижил ID байвал утгыг шинэчилнэ
+        h->x = *px; /* Ижил ID байвал утгыг шинэчилнэ */
     }
 
     if (isRed(h->R) && !isRed(h->L)) h = rotateLeft(h);
@@ -82,18 +87,16 @@ static Elm *put(Elm *h, const Student *px)
 }
 
 /*
-  `ptree`-ийн зааж байгаа модонд `x` утгыг оруулна.
+  `ptree`-ийн зааж байгаа модонд `px` утгыг оруулна.
  */
 void rb_put(RBT *ptree, const Student *px)
 {
     ptree->root = put(ptree->root, px);
-	if (ptree->root != NULL) {
-		ptree->root->color = BLACK;
-	}
+    ptree->root->color = BLACK;
 }
 
 /*
-  `ptree`-ийн зааж байгаа модноос `x` утгыг хайн олдсон оройн `Elm*` хаягийг буцаана.
+  `ptree`-ийн зааж байгаа модноос `id`-аар хайн олдсон оройн `Elm*` хаягийг буцаана.
  */
 Elm *rb_get(const RBT *ptree, const char id[])
 {
@@ -134,7 +137,7 @@ static Elm *moveRedRight(Elm *h)
 
 static Elm *balance(Elm *h)
 {
-    if (isRed(h->R)) h = rotateLeft(h);
+    if (isRed(h->R) && !isRed(h->L)) h = rotateLeft(h);
     if (isRed(h->L) && isRed(h->L->L)) h = rotateRight(h);
     if (isRed(h->L) && isRed(h->R)) flipColors(h);
     return h;
@@ -142,8 +145,8 @@ static Elm *balance(Elm *h)
 
 static Elm *min(Elm *x)
 {
-    if (x->L == NULL) return x;
-    else return min(x->L);
+    while (x->L != NULL) x = x->L;
+    return x;
 }
 
 static Elm *deleteMin(Elm *h)
@@ -158,34 +161,33 @@ static Elm *deleteMin(Elm *h)
     return balance(h);
 }
 
+/* Устгах id модонд заавал байгаа гэж үзнэ (rb_del дотор шалгана) */
 static Elm *delete(Elm *h, const char id[])
 {
-    if (h == NULL) return NULL;
-
-    int cmp = strcmp(id, h->x.id);
-    if (cmp < 0) {
-        if (h->L != NULL) {
-            if (!isRed(h->L) && !isRed(h->L->L))
-                h = moveRedLeft(h);
-            h->L = delete(h->L, id);
-        }
+    if (strcmp(id, h->x.id) < 0) {
+        if (h->L != NULL && !isRed(h->L) && !isRed(h->L->L))
+            h = moveRedLeft(h);
+        h->L = delete(h->L, id);
     } else {
         if (isRed(h->L))
             h = rotateRight(h);
-        if (cmp == 0 && (h->R == NULL)) {
+
+        /* rotateRight-ийн дараа h өөрчлөгдсөн тул дахин харьцуулна */
+        if (strcmp(id, h->x.id) == 0 && h->R == NULL) {
             free(h);
             return NULL;
         }
-        if (h->R != NULL) {
-            if (!isRed(h->R) && !isRed(h->R->L))
-                h = moveRedRight(h);
-            if (cmp == 0) {
-                Elm *x = min(h->R);
-                h->x = x->x;
-                h->R = deleteMin(h->R);
-            } else {
-                h->R = delete(h->R, id);
-            }
+
+        if (h->R != NULL && !isRed(h->R) && !isRed(h->R->L))
+            h = moveRedRight(h);
+
+        /* moveRedRight-ийн дараа бас дахин харьцуулна */
+        if (strcmp(id, h->x.id) == 0) {
+            Elm *m = min(h->R);
+            h->x = m->x;
+            h->R = deleteMin(h->R);
+        } else {
+            h->R = delete(h->R, id);
         }
     }
     return balance(h);
@@ -196,26 +198,21 @@ static Elm *delete(Elm *h, const char id[])
  */
 void rb_del(RBT *ptree, const char id[])
 {
-    if (rb_get(ptree, id) != NULL) {
-        ptree->root = delete(ptree->root, id);
-        if (ptree->root != NULL) {
-            ptree->root->color = BLACK;
-        }
-    }
+    if (rb_get(ptree, id) == NULL) return;
+
+    /* Үндсийн хоёр хүүхэд хар бол үндсийг түр улаан болгоно */
+    if (!isRed(ptree->root->L) && !isRed(ptree->root->R))
+        ptree->root->color = RED;
+
+    ptree->root = delete(ptree->root, id);
+    if (ptree->root != NULL)
+        ptree->root->color = BLACK;
 }
 
 void print(Elm *p)
 {
-	if (p)
-		printf("%s %s %d %.1f\n", p->x.name, p->x.id, p->x.age, p->x.gpa);
-	else
-		printf("None\n");
-}
-
-static void clearTree(Elm *h)
-{
-    if (h == NULL) return;
-    clearTree(h->L);
-    clearTree(h->R);
-    free(h);
+    if (p)
+        printf("%s %s %d %.1f\n", p->x.name, p->x.id, p->x.age, p->x.gpa);
+    else
+        printf("None\n");
 }
